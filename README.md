@@ -1,6 +1,8 @@
 # Kraken
 Light-weight object-oriented Tab-API for the Bukkit/Spigot API
 
+**Note:** Broken currently. Do not try to use.
+
 ### Installation
 
 #### Option 1: Maven repository 
