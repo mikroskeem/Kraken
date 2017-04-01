@@ -8,6 +8,7 @@ import com.comphenix.protocol.wrappers.WrappedChatComponent;
 import com.comphenix.protocol.wrappers.WrappedGameProfile;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.Team;
@@ -17,8 +18,8 @@ import java.util.UUID;
 
 @Setter
 @Getter
+@Accessors(fluent = true, chain = true)
 public class TabEntry {
-
     private PlayerTab playerTab;
     private int x, y;
     private String text;
@@ -26,6 +27,14 @@ public class TabEntry {
     private Team team;
     private boolean setup;
 
+    /**
+     * Construct tab entry
+     *
+     * @param playerTab Tab where this entry is bound
+     * @param text Entry text
+     * @param x Entry x coordinate
+     * @param y Entry y coordinate
+     */
     public TabEntry(PlayerTab playerTab, String text, int x, int y) {
         this.playerTab = playerTab;
         this.text = text;
