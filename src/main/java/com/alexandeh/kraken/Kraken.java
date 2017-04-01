@@ -11,17 +11,15 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scoreboard.Team;
 
 import java.util.HashSet;
 
-@Getter
 public class Kraken implements Listener {
 
-    private static Kraken instance;
-    private JavaPlugin plugin;
-    private KrakenOptions options;
+    @Getter private static Kraken instance;
+    @Getter private JavaPlugin plugin;
+    @Getter private KrakenOptions options;
 
     public Kraken(JavaPlugin plugin) {
         this(plugin, KrakenOptions.getDefaultOptions());
@@ -38,27 +36,17 @@ public class Kraken implements Listener {
         this.plugin = plugin;
         this.options = options;
 
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                for (Player player : Bukkit.getOnlinePlayers()) {
-                    checkPlayer(player);
-                }
-            }
-        }.runTaskLaterAsynchronously(plugin, 4L);
+        plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, () -> {
+            plugin.getServer().getOnlinePlayers().forEach(this::checkPlayer);
+        }, 4L);
 
-        Bukkit.getPluginManager().registerEvents(this, plugin);
+        plugin.getServer().getPluginManager().registerEvents(this, plugin);
     }
 
     @EventHandler
     public void onPlayerJoinEvent(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                checkPlayer(player);
-            }
-        }.runTaskLaterAsynchronously(plugin, 4L);
+        plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, () -> checkPlayer(player), 4L);
     }
 
     @EventHandler
@@ -87,9 +75,5 @@ public class Kraken implements Listener {
         } else {
             playerTab.clear();
         }
-    }
-
-    public static Kraken getInstance() {
-        return instance;
     }
 }

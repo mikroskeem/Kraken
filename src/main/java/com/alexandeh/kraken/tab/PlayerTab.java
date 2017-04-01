@@ -2,20 +2,21 @@ package com.alexandeh.kraken.tab;
 
 
 import com.alexandeh.kraken.Kraken;
+import com.alexandeh.kraken.tab.event.FakePlayerEntry;
 import com.alexandeh.kraken.tab.event.PlayerTabCreateEvent;
+import com.comphenix.packetwrapper.WrapperPlayServerPlayerInfo;
+import com.comphenix.protocol.wrappers.EnumWrappers;
+import com.comphenix.protocol.wrappers.PlayerInfoData;
+import com.comphenix.protocol.wrappers.WrappedChatComponent;
+import com.comphenix.protocol.wrappers.WrappedGameProfile;
 import lombok.Getter;
-import net.minecraft.server.v1_7_R4.PacketPlayOutPlayerInfo;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.craftbukkit.v1_7_R4.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scoreboard.Scoreboard;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Getter
 public class PlayerTab {
@@ -49,17 +50,41 @@ public class PlayerTab {
         playerTabs.add(this);
     }
 
+    /**
+     * Clear player's tab
+     */
     public void clear() {
+        /* Remove all entries */
         for (TabEntry entry : entries) {
-            if (entry.nms() != null) {
+            if (entry.getPlayerEntry() != null) {
+                FakePlayerEntry playerEntry = entry.getPlayerEntry();
+                WrapperPlayServerPlayerInfo wpspi = new WrapperPlayServerPlayerInfo();
+                wpspi.setAction(EnumWrappers.PlayerInfoAction.REMOVE_PLAYER);
+                wpspi.setData(Collections.singletonList(new PlayerInfoData(
+                        playerEntry.getProfile(),
+                        playerEntry.getLatency(),
+                        EnumWrappers.NativeGameMode.NOT_SET,
+                        WrappedChatComponent.fromText(playerEntry.getName())
+                )));
+                wpspi.sendPacket(player);
+                /*
                 PacketPlayOutPlayerInfo packet = PacketPlayOutPlayerInfo.removePlayer(entry.nms());
                 ((CraftPlayer)player).getHandle().playerConnection.sendPacket(packet);
+                */
             }
         }
 
+        /* Not sure what's that for */
         for (Player online : Bukkit.getOnlinePlayers()) {
-            PacketPlayOutPlayerInfo packet = PacketPlayOutPlayerInfo.removePlayer(((CraftPlayer)online).getHandle());
-            ((CraftPlayer)player).getHandle().playerConnection.sendPacket(packet);
+            WrapperPlayServerPlayerInfo wpspi = new WrapperPlayServerPlayerInfo();
+            wpspi.setAction(EnumWrappers.PlayerInfoAction.REMOVE_PLAYER);
+            wpspi.setData(Collections.singletonList(new PlayerInfoData(
+                    WrappedGameProfile.fromPlayer(online),
+                    player.spigot().getPing(),
+                    EnumWrappers.NativeGameMode.fromBukkit(online.getGameMode()),
+                    WrappedChatComponent.fromText(online.getName())
+            )));
+            wpspi.sendPacket(player);
         }
 
         entries.clear();
@@ -78,7 +103,7 @@ public class PlayerTab {
 
     public TabEntry getByPosition(int x, int y) {
         for (TabEntry tabEntry : entries) {
-            if (tabEntry.x() == x && tabEntry.y() == y) {
+            if (tabEntry.getX() == x && tabEntry.getY() == y) {
                 return tabEntry;
             }
         }
@@ -88,7 +113,7 @@ public class PlayerTab {
     public String getNextBlank() {
         outer: for (String string : getAllBlanks()) {
             for (TabEntry tabEntry : entries) {
-                if (tabEntry.text() != null && tabEntry.text().startsWith(string)) {
+                if (tabEntry.getText() != null && tabEntry.getText().startsWith(string)) {
                     continue outer;
                 }
             }

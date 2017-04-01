@@ -1,30 +1,28 @@
 package com.alexandeh.kraken.tab;
 
+import com.alexandeh.kraken.tab.event.FakePlayerEntry;
+import com.comphenix.packetwrapper.WrapperPlayServerPlayerInfo;
+import com.comphenix.protocol.wrappers.EnumWrappers;
+import com.comphenix.protocol.wrappers.PlayerInfoData;
+import com.comphenix.protocol.wrappers.WrappedChatComponent;
+import com.comphenix.protocol.wrappers.WrappedGameProfile;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.experimental.Accessors;
-import net.minecraft.server.v1_7_R4.EntityPlayer;
-import net.minecraft.server.v1_7_R4.MinecraftServer;
-import net.minecraft.server.v1_7_R4.PacketPlayOutPlayerInfo;
-import net.minecraft.server.v1_7_R4.PlayerInteractManager;
-import net.minecraft.util.com.mojang.authlib.GameProfile;
 import org.bukkit.ChatColor;
-import org.bukkit.craftbukkit.v1_7_R4.CraftWorld;
-import org.bukkit.craftbukkit.v1_7_R4.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.Team;
 
+import java.util.Collections;
 import java.util.UUID;
 
-@Getter
 @Setter
-@Accessors(fluent = true, chain = true)
+@Getter
 public class TabEntry {
 
     private PlayerTab playerTab;
     private int x, y;
     private String text;
-    private EntityPlayer nms;
+    private FakePlayerEntry playerEntry;
     private Team team;
     private boolean setup;
 
@@ -41,21 +39,30 @@ public class TabEntry {
         setup = true;
 
         Player player = playerTab.getPlayer();
-        CraftPlayer craftplayer = (CraftPlayer) player;
+        playerEntry = new FakePlayerEntry(
+                new WrappedGameProfile(UUID.randomUUID(), ChatColor.translateAlternateColorCodes('&', text)),
+                0,
+                text
+        );
 
-        nms = new EntityPlayer(MinecraftServer.getServer(), ((CraftWorld) player.getWorld()).getHandle(), new GameProfile(UUID.randomUUID(), ChatColor.translateAlternateColorCodes('&', text)), new PlayerInteractManager(((CraftWorld) player.getWorld()).getHandle()));
-
-        PacketPlayOutPlayerInfo packet = PacketPlayOutPlayerInfo.updateDisplayName(nms);
-        craftplayer.getHandle().playerConnection.sendPacket(packet);
+        WrapperPlayServerPlayerInfo wpspi = new WrapperPlayServerPlayerInfo();
+        wpspi.setAction(EnumWrappers.PlayerInfoAction.UPDATE_DISPLAY_NAME);
+        wpspi.setData(Collections.singletonList(new PlayerInfoData(
+                playerEntry.getProfile(),
+                playerEntry.getLatency(),
+                EnumWrappers.NativeGameMode.NOT_SET,
+                WrappedChatComponent.fromText(playerEntry.getName())
+        )));
+        wpspi.sendPacket(player);
 
         team = playerTab.getScoreboard().registerNewTeam(UUID.randomUUID().toString().substring(0, 16));
-        team.addEntry(nms.getName());
+        team.addEntry(playerEntry.getName());
 
         return this;
     }
 
     public TabEntry send() {
-        if (!(setup)) {
+        if (!setup) {
             return setup();
         }
 
